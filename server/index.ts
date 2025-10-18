@@ -1,12 +1,9 @@
-import dotenv from 'dotenv';
-dotenv.config();
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import cookieSession from "cookie-session";
 import { storage } from "./storage";
 import { startDiscordBot } from "./discord-bot";
-import { spawn } from 'child_process';
 import { 
   securityHeaders, 
   sanitizeInput, 
@@ -134,32 +131,15 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Start Python Discord bots via Flask API
-  const FLASK_BOT_API_URL = process.env.FLASK_BOT_API_URL || 'http://localhost:5001';
+  // Start Discord bot for economy rewards
+  startDiscordBot();
   
+  // Start Quest Bot for notifications and channel management
   try {
-    // Check if Flask bot API is running
-    const healthCheck = await fetch(`${FLASK_BOT_API_URL}/health`);
-    if (healthCheck.ok) {
-      console.log('✅ Flask bot API is running');
-      
-      // Start the bots
-      const startResponse = await fetch(`${FLASK_BOT_API_URL}/bots/start`, {
-        method: 'POST'
-      });
-      
-      if (startResponse.ok) {
-        const result = await startResponse.json();
-        console.log('✅ Discord bots started:', result.started);
-      } else {
-        console.error('❌ Failed to start Discord bots via Flask API');
-      }
-    } else {
-      console.error('❌ Flask bot API health check failed');
-    }
+    import('./quest-bot');
+    console.log('🎯 Quest Bot starting...');
   } catch (error) {
-    console.error('⚠️  Could not connect to Flask bot API. Make sure it is running on', FLASK_BOT_API_URL);
-    console.error('   You can start it separately by running: python server/flask_bot_api.py');
+    console.error('❌ Failed to start Quest Bot:', error);
   }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
