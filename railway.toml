@@ -13,13 +13,13 @@ timeout = 100
 interval = 10
 
 [build.nixpacksPlan.phases.setup]
-nixPkgs = ["nodejs_20", "python311", "python311Packages.pip"]
+nixPkgs = ["nodejs_20"]
 
 [build.nixpacksPlan.phases.install]
-cmds = ["npm ci", "pip install -r requirements.txt"]
+cmds = ["npm ci"]
 
 [build.nixpacksPlan.phases.build]
-cmds = ["npm run build"]
+cmds = ["npm install && npm install dotenv && npm install mysql2"]
 
 [build.nixpacksPlan.start]
-cmd = "npm run start"
+cmd = "npm run dev"
