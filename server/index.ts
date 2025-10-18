@@ -131,26 +131,36 @@ app.use((req, res, next) => {
   next();
 });
 
-import { spawn } from 'child_process';
-
 (async () => {
   const server = await registerRoutes(app);
 
-  // Start Python Discord bots
-  const pythonBots = spawn('python', ['server/start_bots.py'], {
-    stdio: 'inherit',
-    env: { ...process.env }
-  });
-
-  pythonBots.on('error', (error: Error) => {
-    console.error('❌ Failed to start Python Discord bots:', error);
-  });
-
-  pythonBots.on('exit', (code: number) => {
-    console.log(`Python Discord bots exited with code ${code}`);
-  });
-
-  console.log('✅ Started Python Discord bots process');
+  // Start Python Discord bots via Flask API
+  const FLASK_BOT_API_URL = process.env.FLASK_BOT_API_URL || 'http://localhost:5001';
+  
+  try {
+    // Check if Flask bot API is running
+    const healthCheck = await fetch(`${FLASK_BOT_API_URL}/health`);
+    if (healthCheck.ok) {
+      console.log('✅ Flask bot API is running');
+      
+      // Start the bots
+      const startResponse = await fetch(`${FLASK_BOT_API_URL}/bots/start`, {
+        method: 'POST'
+      });
+      
+      if (startResponse.ok) {
+        const result = await startResponse.json();
+        console.log('✅ Discord bots started:', result.started);
+      } else {
+        console.error('❌ Failed to start Discord bots via Flask API');
+      }
+    } else {
+      console.error('❌ Flask bot API health check failed');
+    }
+  } catch (error) {
+    console.error('⚠️  Could not connect to Flask bot API. Make sure it is running on', FLASK_BOT_API_URL);
+    console.error('   You can start it separately by running: python server/flask_bot_api.py');
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
